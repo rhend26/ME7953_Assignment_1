@@ -10,10 +10,18 @@ normal_data_filter = normal_data.dropna()
 faulty_data = pd.read_csv('eccentricity.csv', usecols=[0, 1])  # Faulty condition vibration data
 faulty_data_filter = faulty_data.dropna()
 
+# Load additional fault datasets if available (example names)
+surface_faults = pd.read_csv('surface_faults.csv', usecols=[0, 1]).dropna()
+root_cracks = pd.read_csv('root_cracks.csv', usecols=[0, 1]).dropna()
 
 # Combine datasets for preprocessing
-data = pd.concat([normal_data_filter, faulty_data_filter], axis=0)
-labels = np.array([0] * len(normal_data_filter) + [1] * len(faulty_data_filter))  # 0: Normal, 1: Faulty
+data = pd.concat([normal_data_filter, faulty_data_filter, surface_faults, root_cracks], axis=0)
+
+# Create labels for each fault type
+labels = np.array([0] * len(normal_data_filter) + 
+                  [1] * len(faulty_data_filter) + 
+                  [2] * len(surface_faults) + 
+                  [3] * len(root_cracks))  # 0: Normal, 1: Faulty, 2: Surface Faults, 3: Root Cracks
 
 # Standardize the Data
 scaler = StandardScaler()
@@ -42,11 +50,15 @@ plt.show()
 # Project Data onto First Two Principal Components
 projected_data = principal_components[:, :2]
 
-# Visualization of Projected Data
+# Visualization of Projected Data for Multiple Fault Types
 plt.figure(figsize=(8, 6))
-for label, color in zip([0, 1], ['blue', 'red']):
-    plt.scatter(projected_data[labels == label, 0], projected_data[labels == label, 1],
-                label='Normal' if label == 0 else 'Faulty', alpha=0.7, edgecolor='k')
+colors = ['blue', 'red', 'green', 'purple']  # Assign colors for each fault type
+fault_labels = ['Normal', 'Eccentricity Fault', 'Surface Fault', 'Root Crack']
+
+for label, color in zip(range(4), colors):
+    plt.scatter(projected_data[labels == label, 0], projected_data[labels == label, 1], 
+                label=fault_labels[label], alpha=0.7, edgecolor='k')
+
 plt.title('Data Projection onto First Two Principal Components')
 plt.xlabel('Principal Component 1')
 plt.ylabel('Principal Component 2')
@@ -70,9 +82,9 @@ plt.legend()
 plt.grid(True)
 plt.show()
 
-# Set Threshold and Detect Faults
-threshold = np.percentile(reconstruction_error[labels == 0], 95)
-predicted_labels = (reconstruction_error > threshold).astype(int)
+# Set Thresholds for Multi-Class Fault Detection
+thresholds = [np.percentile(reconstruction_error[labels == i], 95) for i in range(4)]
+predicted_labels = np.array([np.argmax([reconstruction_error[i] > thresholds[j] for j in range(4)]) for i in range(len(reconstruction_error))])
 
 # Evaluate Detection Performance
 from sklearn.metrics import confusion_matrix, classification_report
