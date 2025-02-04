@@ -79,3 +79,33 @@ from sklearn.metrics import confusion_matrix, classification_report
 
 print("Confusion Matrix:\n", confusion_matrix(labels, predicted_labels))
 print("\nClassification Report:\n", classification_report(labels, predicted_labels))
+print("\n--Now Performing Fault Detection using SVD ---\n")
+
+from numpy.linalg import svd
+
+# Perform SVD on standardized data
+U, S, Vt = svd(data_scaled, full_matrices=False)
+reconstructed_data_svd = np.dot(U, np.dot(np.diag(S), Vt))
+
+# Compute Reconstruction Error for SVD
+reconstruction_error_svd = np.mean((data_scaled - reconstructed_data_svd) ** 2, axis=1)
+
+# Plot SVD Reconstruction Error
+plt.figure(figsize=(8, 6))
+plt.hist(reconstruction_error_svd[labels == 0], bins=30, alpha=0.7, label='Normal (SVD)', color='blue', edgecolor='k')
+plt.hist(reconstruction_error_svd[labels == 1], bins=30, alpha=0.7, label='Faulty (SVD)', color='red', edgecolor='k')
+plt.axvline(np.percentile(reconstruction_error_svd[labels == 0], 95), color='green', linestyle='--', label='Threshold (SVD)')
+plt.title('Reconstruction Error Distribution (SVD)')
+plt.xlabel('Reconstruction Error (SVD)')
+plt.ylabel('Frequency')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# Set Threshold and Detect Faults using SVD
+threshold_svd = np.percentile(reconstruction_error_svd[labels == 0], 95)
+predicted_labels_svd = (reconstruction_error_svd > threshold_svd).astype(int)
+
+# Evaluate SVD-Based Fault Detection Performance
+print("\nConfusion Matrix (SVD):\n", confusion_matrix(labels, predicted_labels_svd))
+print("\nClassification Report (SVD):\n", classification_report(labels, predicted_labels_svd))
