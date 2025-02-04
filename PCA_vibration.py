@@ -20,7 +20,7 @@ scaler = StandardScaler()
 data_scaled = scaler.fit_transform(data)
 
 # Perform PCA
-num_components = 2      # Change this number to experiment
+num_components = 3      # Change this number to experiment
 pca = PCA(n_components=num_components)
 principal_components = pca.fit_transform(data_scaled)
 
